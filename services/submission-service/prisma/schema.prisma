@@ -1,0 +1,59 @@
+// services/submission-service — Prisma Schema
+// Owns: filled form submissions by Engineers, approval workflow
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SUBMISSION_DATABASE_URL")
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  formId       String           // FK to form-service (cross-service ref)
+  tenantId     String
+  engineerId   String           // FK to user-service
+  assignedById String?          // Manager who assigned the task
+  status       SubmissionStatus @default(DRAFT)
+  data         Json             // field answers: { fieldId: value }
+  notes        String?          // Engineer notes
+  reviewNote   String?          // Manager review note
+
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  submittedAt  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  photos       SubmissionPhoto[]
+
+  @@index([tenantId])
+  @@index([engineerId])
+  @@index([formId])
+  @@index([status])
+}
+
+// ─── Submitted photos (from photo-service, referenced here) ──────────────────
+
+model SubmissionPhoto {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  photoId      String     // FK to photo-service
+  caption      String?
+  uploadedAt   DateTime   @default(now())
+
+  @@index([submissionId])
+}
+
+enum SubmissionStatus {
+  DRAFT          // Engineer is still filling it in
+  SUBMITTED      // Submitted for Manager review
+  UNDER_REVIEW   // Manager is reviewing
+  APPROVED       // Manager approved
+  REJECTED       // Manager rejected — can be resubmitted
+  ESCALATED      // Manager escalated to Admin
+}

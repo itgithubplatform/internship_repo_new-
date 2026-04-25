@@ -1,0 +1,59 @@
+// services/notification-service — Prisma Schema
+// Owns: notification queue, delivery status, templates
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("NOTIFICATION_DATABASE_URL")
+}
+
+model Notification {
+  id          String               @id @default(cuid())
+  tenantId    String?
+  recipientId String               // User id
+  channel     NotificationChannel
+  type        NotificationType
+  subject     String?
+  body        String
+  metadata    Json?                // extra payload (e.g. submissionId, kycId)
+  status      NotificationStatus   @default(PENDING)
+  sentAt      DateTime?
+  failReason  String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([recipientId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  SMS
+  IN_APP
+}
+
+enum NotificationType {
+  KYC_SUBMITTED
+  KYC_APPROVED
+  KYC_REJECTED
+  SUBMISSION_RECEIVED
+  SUBMISSION_APPROVED
+  SUBMISSION_REJECTED
+  SUBMISSION_ESCALATED
+  LICENSE_EXPIRING
+  LICENSE_EXPIRED
+  ACCOUNT_CREATED
+  PASSWORD_RESET
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}

@@ -1,0 +1,56 @@
+// services/license-service — Prisma Schema
+// Owns: license tiers, assignments, and tier-change history
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("LICENSE_DATABASE_URL")
+}
+
+model License {
+  id           String        @id @default(cuid())
+  tenantId     String        @unique
+  tier         LicenseTier   @default(TRIAL)
+  status       LicenseStatus @default(ACTIVE)
+  startsAt     DateTime      @default(now())
+  expiresAt    DateTime?     // null = perpetual (Platinum)
+  assignedById String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  history      LicenseHistory[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model LicenseHistory {
+  id          String      @id @default(cuid())
+  licenseId   String
+  license     License     @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  fromTier    LicenseTier
+  toTier      LicenseTier
+  changedById String
+  reason      String?
+  changedAt   DateTime    @default(now())
+
+  @@index([licenseId])
+}
+
+enum LicenseTier {
+  TRIAL
+  BASIC
+  PROFESSIONAL
+  PLATINUM
+}
+
+enum LicenseStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}

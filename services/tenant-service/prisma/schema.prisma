@@ -1,0 +1,95 @@
+// services/tenant-service — Prisma Schema
+// Owns: tenant registry, settings, products, licenses
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  email       String   @unique
+  phone       String?
+  address     String?
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  trialEndsAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  license        License?
+  tenantProducts TenantProduct[]
+  settings       TenantSettings?
+
+  @@index([slug])
+}
+
+model TenantSettings {
+  id                  String  @id @default(cuid())
+  tenantId            String  @unique
+  tenant              Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  allowSelfRegister   Boolean @default(false)
+  requireKYCForAll    Boolean @default(false)  // if true, Admin + Manager also need KYC
+  maxUsers            Int?
+  timezone            String  @default("UTC")
+  updatedAt           DateTime @updatedAt
+}
+
+model License {
+  id           String        @id @default(cuid())
+  tenantId     String        @unique
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tier         LicenseTier   @default(TRIAL)
+  status       LicenseStatus @default(ACTIVE)
+  startsAt     DateTime      @default(now())
+  expiresAt    DateTime?
+  assignedById String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([tenantId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenantProducts TenantProduct[]
+}
+
+model TenantProduct {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  enabledAt DateTime @default(now())
+
+  @@unique([tenantId, productId])
+  @@index([tenantId])
+}
+
+enum LicenseTier {
+  TRIAL
+  BASIC
+  PROFESSIONAL
+  PLATINUM
+}
+
+enum LicenseStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}

@@ -1,0 +1,28 @@
+// services/photo-service — Prisma Schema
+// Owns: binary photo storage (stored as bytes in DB for now)
+// In production: store as object-storage URL (S3-compatible)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PHOTO_DATABASE_URL")
+}
+
+model Photo {
+  id           String   @id @default(cuid())
+  tenantId     String
+  uploadedById String   // Engineer user id
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageUrl   String   // AWS S3 or MinIO URL (required now)
+  caption      String?
+  metadata     Json?    // exif, GPS, device info
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([uploadedById])
+}

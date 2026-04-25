@@ -1,0 +1,89 @@
+// This schema belongs to the kyc-service database (dedicated DB per microservice)
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("KYC_DATABASE_URL")
+}
+
+// ─── KYCSubmission ────────────────────────────────────────────────────────────
+// One submission per engineer (latest active).  Previous rejected ones are kept
+// for audit trail with status REJECTED.
+
+model KYCSubmission {
+  id              String       @id @default(cuid())
+  engineerId      String
+  tenantId        String
+  status          KYCStatus    @default(PENDING)
+  rejectionReason String?
+
+  // Reviewer info (Admin who approved/rejected)
+  reviewedById    String?
+  reviewedAt      DateTime?
+
+  submittedAt     DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  documents       KYCDocument[]
+  auditLogs       KYCAuditLog[]
+
+  @@index([engineerId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ─── KYCDocument ──────────────────────────────────────────────────────────────
+// One row per uploaded document.  Binary stored as bytea; for production swap
+// to an object-storage URL pattern.
+
+model KYCDocument {
+  id           String          @id @default(cuid())
+  submissionId String
+  type         KYCDocumentType
+  fileName     String
+  mimeType     String
+  data         Bytes           // raw document bytes
+  uploadedAt   DateTime        @default(now())
+
+  submission   KYCSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+// ─── KYCAuditLog ──────────────────────────────────────────────────────────────
+// Immutable log of every status change on a submission.
+
+model KYCAuditLog {
+  id           String        @id @default(cuid())
+  submissionId String
+  actorId      String
+  actorRole    String        // ADMIN | SUPER_ADMIN | SYSTEM
+  action       String        // SUBMITTED | APPROVED | REJECTED | RESUBMITTED
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+
+  submission   KYCSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum KYCStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum KYCDocumentType {
+  GOVERNMENT_ID
+  PASSPORT
+  DRIVERS_LICENSE
+  PROOF_OF_ADDRESS
+  SELFIE_PHOTOGRAPH
+}

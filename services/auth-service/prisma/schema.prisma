@@ -1,0 +1,60 @@
+// services/auth-service — Prisma Schema
+// Owns: sessions, refresh tokens, password reset tokens
+// User records are READ from user-service; auth-service is the JWT issuer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+// ─── Session (refresh token store) ───────────────────────────────────────────
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String                          // FK to user-service (cross-service ref)
+  tenantId     String?
+  role         String                          // denormalised role at session creation
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  isRevoked    Boolean  @default(false)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+}
+
+// ─── PasswordResetToken ───────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ─── LoginAttempt (rate-limit audit) ─────────────────────────────────────────
+
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  email      String
+  ipAddress  String?
+  success    Boolean
+  attemptedAt DateTime @default(now())
+
+  @@index([email])
+  @@index([ipAddress])
+  @@index([attemptedAt])
+}

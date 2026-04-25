@@ -1,0 +1,99 @@
+/**
+ * KYC Module — Shared Theme Variables
+ * Generated with shadcn/ui theme approach (HSL-based CSS custom properties)
+ * Color palette: Violet/Indigo primary · Slate neutrals · Dark mode first
+ *
+ * Import this file at the top of app/admin/kyc/layout.tsx or globals.css
+ */
+
+:root {
+  /* ─── Brand / Primary ───────────────────────────────── */
+  --kyc-primary:          263 70% 58%;   /* violet-500  */
+  --kyc-primary-hover:    263 70% 50%;   /* violet-600  */
+  --kyc-primary-fg:       0   0%  100%;  /* white text on primary */
+
+  /* ─── Surfaces ──────────────────────────────────────── */
+  --kyc-bg:               222 47% 7%;    /* slate-950   */
+  --kyc-surface:          222 47% 11%;   /* slate-900   */
+  --kyc-surface-2:        217 33% 17%;   /* slate-800   */
+  --kyc-border:           217 33% 22%;   /* slate-700   */
+
+  /* ─── Text ───────────────────────────────────────────── */
+  --kyc-text:             210 40% 98%;   /* slate-50    */
+  --kyc-text-muted:       215 20% 55%;   /* slate-400   */
+  --kyc-text-subtle:      215 16% 40%;   /* slate-500   */
+
+  /* ─── Status colours ─────────────────────────────────── */
+  --kyc-pending:          38  92% 50%;   /* amber-500   */
+  --kyc-pending-bg:       38  92% 10%;
+  --kyc-pending-fg:       38  92% 75%;
+
+  --kyc-review:           199 89% 48%;   /* sky-500      */
+  --kyc-review-bg:        199 89% 10%;
+  --kyc-review-fg:        199 89% 80%;
+
+  --kyc-approved:         142 71% 45%;   /* emerald-500  */
+  --kyc-approved-bg:      142 71% 8%;
+  --kyc-approved-fg:      142 71% 75%;
+
+  --kyc-rejected:         0   72% 51%;   /* red-500      */
+  --kyc-rejected-bg:      0   72% 9%;
+  --kyc-rejected-fg:      0   72% 80%;
+
+  /* ─── Shadow / Ring ─────────────────────────────────── */
+  --kyc-ring:             263 70% 58%;
+  --kyc-shadow:           0 10px 40px -12px hsla(263, 70%, 10%, 0.8);
+}
+
+/* ─── Utility classes ────────────────────────────────────────────────────────── */
+
+.kyc-card {
+  background-color: hsl(var(--kyc-surface));
+  border: 1px solid hsl(var(--kyc-border));
+  border-radius: 0.75rem;
+  box-shadow: var(--kyc-shadow);
+  transition: box-shadow 0.2s ease;
+}
+.kyc-card:hover {
+  box-shadow: 0 16px 48px -12px hsla(263, 70%, 15%, 0.9);
+}
+
+.kyc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.kyc-badge--pending   { background: hsl(var(--kyc-pending-bg));  color: hsl(var(--kyc-pending-fg));  }
+.kyc-badge--review    { background: hsl(var(--kyc-review-bg));   color: hsl(var(--kyc-review-fg));   }
+.kyc-badge--approved  { background: hsl(var(--kyc-approved-bg)); color: hsl(var(--kyc-approved-fg)); }
+.kyc-badge--rejected  { background: hsl(var(--kyc-rejected-bg)); color: hsl(var(--kyc-rejected-fg)); }
+
+.kyc-btn-primary {
+  background-color: hsl(var(--kyc-primary));
+  color: hsl(var(--kyc-primary-fg));
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.kyc-btn-primary:hover  { background-color: hsl(var(--kyc-primary-hover)); }
+.kyc-btn-primary:active { transform: scale(0.97); }
+
+.kyc-btn-danger {
+  background-color: hsl(var(--kyc-rejected-bg));
+  color: hsl(var(--kyc-rejected-fg));
+  border: 1px solid hsl(var(--kyc-rejected));
+  border-radius: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.kyc-btn-danger:hover { background-color: hsl(0, 72%, 14%); }

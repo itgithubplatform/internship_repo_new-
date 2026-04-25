@@ -1,0 +1,57 @@
+// services/form-service — Prisma Schema
+// Owns: form definitions and field schemas (templates created by Admin)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("FORM_DATABASE_URL")
+}
+
+model Form {
+  id          String      @id @default(cuid())
+  tenantId    String
+  title       String
+  description String?
+  productId   String?     // optional — link form to a product
+  isActive    Boolean     @default(true)
+  createdById String      // Admin who created
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  fields      FormField[]
+
+  @@index([tenantId])
+  @@index([isActive])
+}
+
+model FormField {
+  id           String        @id @default(cuid())
+  formId       String
+  form         Form          @relation(fields: [formId], references: [id], onDelete: Cascade)
+  label        String
+  type         FormFieldType
+  placeholder  String?
+  isRequired   Boolean       @default(true)
+  order        Int           @default(0)
+  options      Json?         // for SELECT / RADIO / CHECKBOX fields: string[]
+  validation   Json?         // zod-schema JSON for custom rules
+  createdAt    DateTime      @default(now())
+
+  @@index([formId])
+  @@index([order])
+}
+
+enum FormFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  RADIO
+  CHECKBOX
+  PHOTO
+  SIGNATURE
+}

@@ -1,0 +1,50 @@
+// services/user-service — Prisma Schema
+// Owns: full user profiles for all roles
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("USER_DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  role         Role      @default(ENGINEER)
+  tenantId     String?   // null for SUPER_ADMIN
+  kycStatus    KYCStatus @default(NOT_SUBMITTED)
+  kycUpdatedAt DateTime?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
+  @@index([tenantId])
+  @@index([role])
+  @@index([kycStatus])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  ENGINEER
+}
+
+enum KYCStatus {
+  NOT_SUBMITTED
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}

@@ -1,0 +1,218 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  apps/web — Prisma Schema (Web App / Core Database)
+//
+//  This schema owns the CORE platform entities:
+//    • Tenants          — every registered organisation
+//    • Users            — all roles (Super Admin, Admin, Manager, Engineer)
+//    • Sessions         — JWT refresh token store
+//    • Licenses         — tier + expiry per tenant
+//    • Products         — global product catalogue (Super Admin managed)
+//    • TenantProducts   — which products a tenant has enabled
+//    • AuditLogs        — immutable action trail
+//
+//  KYC lives in services/kyc-service/prisma/schema.prisma (own DB)
+//  Forms + Submissions live in their own service schemas
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TENANT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique          // URL-safe identifier e.g. "acme-corp"
+  email       String   @unique          // Primary contact email
+  phone       String?
+  address     String?
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  trialEndsAt DateTime?                 // null = not on trial
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users          User[]
+  license        License?
+  tenantProducts TenantProduct[]
+  auditLogs      AuditLog[]
+
+  @@index([slug])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  USER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  role         Role      @default(ENGINEER)
+
+  // Tenant scoping (null only for SUPER_ADMIN)
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  // KYC gate — mirrored from kyc-service for fast middleware checks
+  kycStatus    KYCStatus @default(NOT_SUBMITTED)
+  kycUpdatedAt DateTime?
+
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdById  String?   // who created this user
+
+  // Relations
+  sessions     Session[]
+  auditLogs    AuditLog[]
+
+  @@index([email])
+  @@index([tenantId])
+  @@index([role])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SESSION  (refresh token store)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  LICENSE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model License {
+  id           String       @id @default(cuid())
+  tenantId     String       @unique
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tier         LicenseTier  @default(TRIAL)
+  status       LicenseStatus @default(ACTIVE)
+  startsAt     DateTime     @default(now())
+  expiresAt    DateTime?    // null = perpetual (Platinum)
+  assignedById String?      // Super Admin who assigned it
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([tier])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PRODUCT  (global catalogue — Super Admin managed)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String   @unique
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenantProducts TenantProduct[]
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TENANT PRODUCT  (many-to-many — which products a tenant has enabled)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model TenantProduct {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  enabledAt DateTime @default(now())
+
+  @@unique([tenantId, productId])
+  @@index([tenantId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  AUDIT LOG  (immutable — never update or delete rows)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action    String   // e.g. "USER_CREATED", "LICENSE_ASSIGNED", "KYC_APPROVED"
+  entity    String?  // e.g. "User", "Tenant", "License"
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ENUMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  ENGINEER
+}
+
+// Mirrored from kyc-service — kept in sync via event/webhook after review
+enum KYCStatus {
+  NOT_SUBMITTED
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum LicenseTier {
+  TRIAL
+  BASIC
+  PROFESSIONAL
+  PLATINUM
+}
+
+enum LicenseStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
