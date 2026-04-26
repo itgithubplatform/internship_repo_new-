@@ -24,6 +24,15 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Rate limiting for auth endpoints (max 10 attempts per 15 min per IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ service: 'api-gateway', status: 'ok', ts: new Date().toISOString() });
@@ -45,8 +54,8 @@ const services = {
 
 // ─── Proxies ──────────────────────────────────────────────────────────────────
 
-// 1. Auth Service (login/register) - bypasses license check, applies auth check only for protected routes
-app.use('/auth', authMiddleware, proxy(services.auth, {
+// 1. Auth Service (login/register) - specific rate limit, bypasses license check
+app.use('/auth', authLimiter, proxy(services.auth, {
   proxyReqPathResolver: (req) => `/auth${req.url}`,
 }));
 
@@ -70,13 +79,14 @@ protectedServices.forEach(({ path, target }) => {
     licenseMiddleware,
     proxy(target, {
       proxyReqPathResolver: (req) => `${path}${req.url}`,
-      // Forward the user object as headers to internal services
+      // Support larger payloads for KYC and Photo uploads (10MB as per requirement)
+      limit: '10mb',
       proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
-        if ((srcReq as any).user) {
+        if (srcReq.user) {
           proxyReqOpts.headers = proxyReqOpts.headers || {};
-          proxyReqOpts.headers['x-user-id'] = (srcReq as any).user.id;
-          proxyReqOpts.headers['x-tenant-id'] = (srcReq as any).user.tenantId;
-          proxyReqOpts.headers['x-user-role'] = (srcReq as any).user.role;
+          proxyReqOpts.headers['x-user-id'] = srcReq.user.id;
+          proxyReqOpts.headers['x-tenant-id'] = srcReq.user.tenantId;
+          proxyReqOpts.headers['x-user-role'] = srcReq.user.role;
         }
         return proxyReqOpts;
       }

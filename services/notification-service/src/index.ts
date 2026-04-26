@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import { PrismaClient, NotificationStatus, NotificationChannel, NotificationType } from '@prisma/client';
@@ -14,7 +14,9 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.post('/api/notifications', async (req, res) => {
+let io: any = null;
+
+app.post('/api/notifications', async (req: Request, res: Response) => {
   try {
     const { recipientId, tenantId, channel, type, subject, body, metadata } = req.body;
 
@@ -31,9 +33,6 @@ app.post('/api/notifications', async (req, res) => {
       }
     });
 
-    // In a real scenario, this is where we'd interface with an email provider (SendGrid, SES)
-    // or push notification service (Firebase, APNs).
-    // For now, we'll just log it.
     // Emit to connected user via WebSocket
     if (io) {
       io.to(`user:${recipientId}`).emit('notification', notification);
@@ -48,7 +47,6 @@ app.post('/api/notifications', async (req, res) => {
   }
 });
 
-let io: any = null;
 setupWebSocket(httpServer).then(ws => {
   io = ws;
 }).catch(console.error);

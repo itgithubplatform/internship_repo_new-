@@ -23,6 +23,8 @@ model User {
   kycStatus    KYCStatus @default(NOT_SUBMITTED)
   kycUpdatedAt DateTime?
   isActive     Boolean   @default(true)
+  mfaEnabled   Boolean   @default(false)
+  mfaSecret    String?
   lastLoginAt  DateTime?
   createdById  String?
   createdAt    DateTime  @default(now())

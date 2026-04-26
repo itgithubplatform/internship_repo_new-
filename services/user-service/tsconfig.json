@@ -8,7 +8,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    
+    "baseUrl": ".",
+    "paths": {
+      "@platform/*": ["../../packages/*"]
+    }
   },
   "include": ["src/**/*"]
 }

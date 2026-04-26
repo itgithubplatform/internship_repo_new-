@@ -5,3 +5,4 @@ export * from './db/tenantQuery';
 export * from './services/s3.service';
 export * from './services/redis.service';
 export * from './utils/logger';
+export * from './utils/crypto';

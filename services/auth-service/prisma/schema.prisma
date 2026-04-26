@@ -58,3 +58,30 @@ model LoginAttempt {
   @@index([ipAddress])
   @@index([attemptedAt])
 }
+
+// ─── User (Subset for Authentication) ────────────────────────────────────────
+// This model is kept in sync with the user-service via DB replication or event-bus
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role     @default(ENGINEER)
+  tenantId     String?
+  isActive     Boolean  @default(true)
+  mfaEnabled   Boolean  @default(false)
+  mfaSecret    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([tenantId])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  ENGINEER
+}
