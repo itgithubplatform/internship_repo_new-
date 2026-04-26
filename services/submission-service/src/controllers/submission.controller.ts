@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { SubmissionStatus } from '@prisma/client';
 import { SubmissionService } from '../services/submission.service';
 import { logger } from '../utils/logger';
 
@@ -46,15 +47,19 @@ export async function getSubmissions(req: Request, res: Response) {
 
 export async function reviewSubmission(req: Request, res: Response) {
   try {
-    const { tenantId, id: reviewerId } = req.user!;
+    const { tenantId, id: reviewerId, role: reviewerRole } = req.user!;
     const { id } = req.params;
     const { status, reviewNote } = req.body;
 
-    if (!['APPROVED', 'REJECTED', 'ESCALATED'].includes(status)) {
+    if (!['APPROVED', 'REJECTED', 'ESCALATED', 'FINALIZED'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
-    await submissionService.reviewSubmission(id, tenantId, reviewerId, status, reviewNote);
+    if (status === 'FINALIZED' && reviewerRole !== 'ADMIN' && reviewerRole !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'Only admins can finalize submissions' });
+    }
+
+    await submissionService.reviewSubmission(id, tenantId, reviewerId, reviewerRole, status as SubmissionStatus, reviewNote);
     res.json({ success: true });
   } catch (err) {
     logger.error('[Submission] reviewSubmission error', err);

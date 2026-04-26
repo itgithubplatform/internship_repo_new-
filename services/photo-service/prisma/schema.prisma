@@ -13,16 +13,21 @@ datasource db {
 
 model Photo {
   id           String   @id @default(cuid())
+  submissionId String?  // Link to the form submission
   tenantId     String
   uploadedById String   // Engineer user id
   fileName     String
   mimeType     String
   sizeBytes    Int
-  storageUrl   String   // AWS S3 or MinIO URL (required now)
+  storageUrl   String   // AWS S3 or MinIO URL (s3_url)
   caption      String?
-  metadata     Json?    // exif, GPS, device info
+  metadata     Json?    // exif, device info
+  capturedAt   DateTime? // When the photo was actually taken
+  gpsLat       Float?
+  gpsLng       Float?
   createdAt    DateTime @default(now())
 
   @@index([tenantId])
   @@index([uploadedById])
+  @@index([submissionId])
 }

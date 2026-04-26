@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # ─── Primary Database ─────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: platform_postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: platform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - platform_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d platform_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Database Connection Pooler (Scale Req: 10K connections) ──────
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: platform_pgbouncer
+    environment:
+      DATABASE_URL: postgres://root:password123@postgres:5432/platform_db
+      MAX_CLIENT_CONN: 10000
+      DEFAULT_POOL_SIZE: 200
+      POOL_MODE: transaction
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - platform_net
+
+  # ─── Redis (Sessions, Caching, Pub/Sub) ───────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: platform_redis
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - platform_net
+
+  # ─── MinIO (Object Storage for Photographs) ───────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: platform_minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: Password123!
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - platform_net
+
+  # ─── Monitoring: Prometheus ───────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: platform_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - platform_net
+
+  # ─── Monitoring: Grafana ──────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: platform_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - platform_net
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  platform_net:
+    driver: bridge

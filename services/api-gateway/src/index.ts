@@ -39,6 +39,8 @@ const services = {
   submission: process.env.SUBMISSION_SERVICE_URL || 'http://localhost:4006',
   photo:      process.env.PHOTO_SERVICE_URL      || 'http://localhost:4007',
   license:    process.env.LICENSE_SERVICE_URL    || 'http://localhost:4008',
+  notification: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:4009',
+  admin:      process.env.ADMIN_SERVICE_URL      || 'http://localhost:4010',
 };
 
 // ─── Proxies ──────────────────────────────────────────────────────────────────
@@ -52,11 +54,13 @@ app.use('/auth', authMiddleware, proxy(services.auth, {
 const protectedServices = [
   { path: '/users',       target: services.users },
   { path: '/kyc',         target: services.kyc },
-  { path: '/tenant',      target: services.tenant },
-  { path: '/form',        target: services.form },
-  { path: '/submission',  target: services.submission },
-  { path: '/photo',       target: services.photo },
+  { path: '/tenants',     target: services.tenant },
+  { path: '/forms',       target: services.form },
+  { path: '/submissions', target: services.submission },
+  { path: '/photos',      target: services.photo },
   { path: '/license',     target: services.license },
+  { path: '/notification', target: services.notification },
+  { path: '/admin',       target: services.admin },
 ];
 
 protectedServices.forEach(({ path, target }) => {

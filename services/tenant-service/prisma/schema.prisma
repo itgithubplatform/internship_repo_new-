@@ -14,11 +14,13 @@ model Tenant {
   id          String   @id @default(cuid())
   name        String
   slug        String   @unique
+  domain      String?  @unique
   email       String   @unique
   phone       String?
   address     String?
   logoUrl     String?
   isActive    Boolean  @default(true)
+  kycStatus   String   @default("PENDING") // PENDING, APPROVED, REJECTED
   trialEndsAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -61,6 +63,7 @@ model Product {
   name        String
   description String?
   sku         String   @unique
+  category    String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

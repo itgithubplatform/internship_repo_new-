@@ -1,0 +1,46 @@
+// services/admin-service — Prisma Schema
+// Owns: Global configuration, system announcements, audit logs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ADMIN_DATABASE_URL")
+}
+
+model GlobalConfig {
+  key         String   @id
+  value       Json
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemAnnouncement {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  isActive  Boolean  @default(true)
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId   String?  // nullable for SUPER_ADMIN actions
+  actorId    String   // Super Admin or Admin ID
+  actorRole  String   // 'SUPER_ADMIN' or 'ADMIN'
+  action     String
+  entityType String   // e.g., 'TENANT', 'PRODUCT', 'CONFIG' (was resource)
+  entityId   String?  // specific target identifier
+  metadata   Json?    // replaces details
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}

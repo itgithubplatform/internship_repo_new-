@@ -1,4 +1,5 @@
 import { PrismaClient, SubmissionStatus } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -20,7 +21,7 @@ export class SubmissionService {
         formId: data.formId,
         data: data.data,
         notes: data.notes,
-        status: 'SUBMITTED',
+        status: SubmissionStatus.SUBMITTED,
         submittedAt: new Date(),
         // Link photos if provided
         photos: data.photoIds?.length ? {
@@ -42,15 +43,86 @@ export class SubmissionService {
     });
   }
 
-  async reviewSubmission(id: string, tenantId: string, reviewerId: string, status: 'APPROVED' | 'REJECTED' | 'ESCALATED', reviewNote?: string) {
-    return prisma.submission.updateMany({
+  async reviewSubmission(
+    id: string,
+    tenantId: string,
+    reviewerId: string,
+    reviewerRole: string,
+    status: SubmissionStatus,
+    reviewNote?: string
+  ) {
+    const submission = await prisma.submission.update({
       where: { id, tenantId },
       data: {
         status,
         reviewNote,
-        reviewedById: reviewerId,
+        ...(reviewerRole === 'MANAGER' ? { reviewedByManagerId: reviewerId } : { reviewedByAdminId: reviewerId }),
         reviewedAt: new Date(),
+        approvalLogs: {
+          create: {
+            actorId: reviewerId,
+            actorRole: reviewerRole,
+            action: status,
+            comment: reviewNote
+          }
+        }
       },
+      include: {
+        approvalLogs: true
+      }
     });
+
+    // Fire-and-forget notification request
+    this.sendNotification(submission, status).catch(err => {
+      logger.error('[SubmissionService] Failed to send notification', err);
+    });
+
+    return submission;
+  }
+
+  private async sendNotification(submission: any, status: SubmissionStatus) {
+    try {
+      const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3000';
+      const typeMap: Record<string, string> = {
+        'APPROVED': 'SUBMISSION_APPROVED',
+        'REJECTED': 'SUBMISSION_REJECTED',
+        'ESCALATED': 'SUBMISSION_ESCALATED',
+        'FINALIZED': 'SUBMISSION_APPROVED', // Admin final approval
+      };
+
+      const notificationType = typeMap[status];
+      if (!notificationType) return;
+
+      await fetch(`${notificationUrl}/api/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientId: submission.engineerId,
+          tenantId: submission.tenantId,
+          channel: 'IN_APP', // And PUSH maybe? Let notification service handle it.
+          type: notificationType,
+          subject: `Submission ${status}`,
+          body: `Your submission for form ${submission.formId} has been ${status.toLowerCase()}.`,
+          metadata: { submissionId: submission.id }
+        })
+      });
+      
+      // Also send Push notification
+      await fetch(`${notificationUrl}/api/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientId: submission.engineerId,
+          tenantId: submission.tenantId,
+          channel: 'PUSH',
+          type: notificationType,
+          subject: `Submission ${status}`,
+          body: `Your submission for form ${submission.formId} has been ${status.toLowerCase()}.`,
+          metadata: { submissionId: submission.id }
+        })
+      });
+    } catch (err) {
+      logger.error('Error notifying user', err);
+    }
   }
 }

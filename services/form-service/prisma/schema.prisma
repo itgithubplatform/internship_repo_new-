@@ -18,6 +18,8 @@ model Form {
   productId   String?     // optional — link form to a product
   isActive    Boolean     @default(true)
   createdById String      // Admin who created
+  schema      Json?       // JSON field definitions
+  version     Int         @default(1)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
