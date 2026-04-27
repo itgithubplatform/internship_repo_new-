@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Users, 
@@ -12,15 +12,37 @@ import {
   ChevronRight,
   TrendingUp,
   Activity,
-  Globe
+  Globe,
+  Loader2
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
-  const [tenants, setTenants] = useState([
-    { id: '1', name: 'Acme Engineering', users: 156, tier: 'ENTERPRISE', kycStatus: 'VERIFIED', health: 'Healthy' },
-    { id: '2', name: 'Global Infra Ltd', users: 89, tier: 'PRO', kycStatus: 'VERIFIED', health: 'Healthy' },
-    { id: '3', name: 'BuildWise Co', users: 45, tier: 'BASIC', kycStatus: 'PENDING', health: 'Warning' },
-  ]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchTenants();
+  }, []);
+
+  const fetchTenants = async () => {
+    try {
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/admin/companies`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch tenants');
+      const data = await res.json();
+      setTenants(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#020617] text-[#F8FAFC]">
@@ -34,16 +56,16 @@ export default function SuperAdminDashboard() {
         </div>
         
         <nav className="flex flex-col gap-2">
-          <button className="flex items-center gap-3 bg-blue-500/10 text-blue-400 p-3 rounded-xl font-medium">
+          <button className="flex items-center gap-3 bg-blue-500/10 text-blue-400 p-3 rounded-xl font-medium text-left">
             <BarChart3 size={20} /> Dashboard
           </button>
-          <button className="flex items-center gap-3 text-slate-400 p-3 rounded-xl hover:bg-white/5 transition-all">
+          <button className="flex items-center gap-3 text-slate-400 p-3 rounded-xl hover:bg-white/5 transition-all text-left">
             <Building2 size={20} /> Tenants
           </button>
-          <button className="flex items-center gap-3 text-slate-400 p-3 rounded-xl hover:bg-white/5 transition-all">
+          <button className="flex items-center gap-3 text-slate-400 p-3 rounded-xl hover:bg-white/5 transition-all text-left">
             <Users size={20} /> Global Users
           </button>
-          <button className="flex items-center gap-3 text-slate-400 p-3 rounded-xl hover:bg-white/5 transition-all">
+          <button className="flex items-center gap-3 text-slate-400 p-3 rounded-xl hover:bg-white/5 transition-all text-left">
             <Globe size={20} /> Audit Logs
           </button>
         </nav>
@@ -54,7 +76,7 @@ export default function SuperAdminDashboard() {
         <header className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-4xl font-display font-bold mb-2">Global Overview</h1>
-            <p className="text-slate-400">Managing <span className="text-white font-semibold">12 Tenants</span> across <span className="text-white font-semibold">4 regions</span>.</p>
+            <p className="text-slate-400">Managing <span className="text-white font-semibold">{tenants.length} Tenants</span> across <span className="text-white font-semibold">Global Infrastructure</span>.</p>
           </div>
           <button className="bg-blue-500 hover:bg-blue-400 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
             <Plus size={20} /> Onboard New Tenant
@@ -83,69 +105,73 @@ export default function SuperAdminDashboard() {
         <div className="bg-[#0F172A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
           <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
             <h3 className="font-display font-bold text-xl">Active Tenants</h3>
-            <div className="flex gap-2">
-              <button className="text-slate-400 hover:text-white p-2">
-                <BarChart3 size={18} />
-              </button>
-            </div>
+            {loading && <Loader2 className="animate-spin text-blue-500" size={20} />}
           </div>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white/5 text-slate-500 text-xs font-bold uppercase tracking-widest">
-                <th className="p-5">Tenant Name</th>
-                <th className="p-5">User Count</th>
-                <th className="p-5">Tier</th>
-                <th className="p-5">KYC Status</th>
-                <th className="p-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants.map(t => (
-                <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-all group">
-                  <td className="p-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white font-bold border border-white/10">
-                        {t.name[0]}
-                      </div>
-                      <div>
-                        <p className="font-semibold">{t.name}</p>
-                        <p className="text-xs text-slate-500">ID: {t.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{t.users}</span>
-                      <span className="text-xs text-blue-500 font-bold bg-blue-500/10 px-2 py-0.5 rounded-full">+12%</span>
-                    </div>
-                  </td>
-                  <td className="p-5">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      t.tier === 'ENTERPRISE' ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' :
-                      t.tier === 'PRO' ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' :
-                      'border-slate-500/30 bg-slate-500/10 text-slate-400'
-                    }`}>
-                      {t.tier}
-                    </span>
-                  </td>
-                  <td className="p-5">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${t.kycStatus === 'VERIFIED' ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
-                      <span className="text-sm">{t.kycStatus}</span>
-                    </div>
-                  </td>
-                  <td className="p-5 text-right">
-                    <button className="bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all text-slate-400 hover:text-white mr-2">
-                      <ExternalLink size={16} />
-                    </button>
-                    <button className="bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all text-slate-400 hover:text-white">
-                      <MoreVertical size={16} />
-                    </button>
-                  </td>
+          
+          {error && (
+            <div className="p-10 text-center">
+              <p className="text-rose-400 font-medium">Error loading tenants: {error}</p>
+              <button onClick={fetchTenants} className="mt-4 text-blue-400 hover:underline">Try again</button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/5 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                  <th className="p-5">Tenant Name</th>
+                  <th className="p-5">Created At</th>
+                  <th className="p-5">Tier</th>
+                  <th className="p-5">KYC Status</th>
+                  <th className="p-5 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tenants.map(t => (
+                  <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-all group">
+                    <td className="p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white font-bold border border-white/10">
+                          {t.name[0]}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{t.name}</p>
+                          <p className="text-xs text-slate-500">{t.slug}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-5">
+                      <p className="text-sm">{new Date(t.createdAt).toLocaleDateString()}</p>
+                    </td>
+                    <td className="p-5">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${
+                        t.license?.tier === 'PLATINUM' ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' :
+                        t.license?.tier === 'PROFESSIONAL' ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' :
+                        'border-slate-500/30 bg-slate-500/10 text-slate-400'
+                      }`}>
+                        {t.license?.tier || 'TRIAL'}
+                      </span>
+                    </td>
+                    <td className="p-5">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${t.kycStatus === 'APPROVED' ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
+                        <span className="text-sm">{t.kycStatus}</span>
+                      </div>
+                    </td>
+                    <td className="p-5 text-right">
+                      <button className="bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all text-slate-400 hover:text-white mr-2">
+                        <ExternalLink size={16} />
+                      </button>
+                      <button className="bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all text-slate-400 hover:text-white">
+                        <MoreVertical size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          
           <div className="p-4 bg-white/5 text-center">
             <button className="text-blue-400 text-sm font-bold hover:underline flex items-center gap-1 mx-auto">
               View All Tenants <ChevronRight size={14} />

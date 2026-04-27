@@ -15,6 +15,9 @@ export const auth = {
     if (data.accessToken) {
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Set cookie for middleware
+      document.cookie = `token=${data.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
     }
     return data;
   },
@@ -27,7 +30,29 @@ export const auth = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Clear cookie
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     window.location.href = '/login';
+  },
+
+  verifyMfa: async (email: string, code: string) => {
+    const { data } = await api.post('/auth/mfa/verify', { email, code });
+    if (data.accessToken) {
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      document.cookie = `token=${data.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    }
+    return data;
+  },
+
+  forgotPassword: async (email: string) => {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data;
+  },
+
+  resetPassword: async (email: string, code: string, newPassword: string) => {
+    const { data } = await api.post('/auth/reset-password', { email, code, newPassword });
+    return data;
   },
 
   getUser: (): User | null => {

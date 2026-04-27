@@ -30,7 +30,7 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // ─── Global Configuration ──────────────────────────────────────────────────
-app.get('/api/admin/config', requireAdmin, async (req, res) => {
+app.get('/admin/config', requireAdmin, async (req, res) => {
   try {
     const configs = await prisma.globalConfig.findMany();
     res.json(configs);
@@ -39,7 +39,7 @@ app.get('/api/admin/config', requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/admin/config', requireSuperAdmin, async (req, res) => {
+app.post('/admin/config', requireSuperAdmin, async (req, res) => {
   try {
     const { key, value, description } = req.body;
     const actorId = req.headers['x-user-id'] as string;
@@ -59,7 +59,7 @@ app.post('/api/admin/config', requireSuperAdmin, async (req, res) => {
 });
 
 // ─── Audit Logs ─────────────────────────────────────────────────────────────
-app.get('/api/admin/audit-logs', requireSuperAdmin, async (req, res) => {
+app.get('/admin/audit-logs', requireSuperAdmin, async (req, res) => {
   try {
     const logs = await prisma.auditLog.findMany({
       orderBy: { createdAt: 'desc' },
@@ -71,7 +71,7 @@ app.get('/api/admin/audit-logs', requireSuperAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/admin/audit-logs', requireAdmin, async (req, res) => {
+app.post('/admin/audit-logs', requireAdmin, async (req, res) => {
   try {
     const { action, entityType, metadata, entityId, tenantId } = req.body;
     const actorId = req.headers['x-user-id'] as string;
@@ -95,7 +95,7 @@ async function logAudit(actorId: string, actorRole: string, action: string, enti
 // Super Admin needs to manage products and see companies. We proxy or fetch from tenant-service.
 const TENANT_SERVICE_URL = process.env.TENANT_SERVICE_URL || 'http://localhost:4004';
 
-app.get('/api/admin/companies', requireSuperAdmin, async (req, res) => {
+app.get('/admin/companies', requireSuperAdmin, async (req, res) => {
   try {
     const response = await fetch(`${TENANT_SERVICE_URL}/tenant/all`, {
       headers: {
@@ -111,7 +111,7 @@ app.get('/api/admin/companies', requireSuperAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/admin/products', requireAdmin, async (req, res) => {
+app.get('/admin/products', requireAdmin, async (req, res) => {
   try {
     const response = await fetch(`${TENANT_SERVICE_URL}/product`, {
       headers: {
@@ -127,7 +127,7 @@ app.get('/api/admin/products', requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/admin/products', requireSuperAdmin, async (req, res) => {
+app.post('/admin/products', requireSuperAdmin, async (req, res) => {
   try {
     const response = await fetch(`${TENANT_SERVICE_URL}/product`, {
       method: 'POST',

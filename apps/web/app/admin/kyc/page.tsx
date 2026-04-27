@@ -23,8 +23,9 @@ async function fetchSubmissions(
   const params = new URLSearchParams({ page: String(page), pageSize: '12' });
   if (status) params.set('status', status);
 
+  const GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const res = await fetch(
-    `${process.env.KYC_SERVICE_URL}/kyc/submissions?${params.toString()}`,
+    `${GATEWAY_URL}/kyc/submissions?${params.toString()}`,
     {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',

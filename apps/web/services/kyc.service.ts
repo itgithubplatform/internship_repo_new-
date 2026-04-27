@@ -4,7 +4,8 @@
  * Used by client components (action panels) and server actions.
  */
 
-const KYC_API = process.env.NEXT_PUBLIC_KYC_SERVICE_URL ?? '';
+const GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const KYC_API = GATEWAY_URL;
 
 function getToken(): string {
   if (typeof document === 'undefined') return '';

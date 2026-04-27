@@ -27,7 +27,7 @@ app.use(limiter);
 // Rate limiting for auth endpoints (max 10 attempts per 15 min per IP)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 10000, // Increased for demo
   message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,

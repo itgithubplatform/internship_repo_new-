@@ -11,6 +11,9 @@ import { Home, ClipboardList, Bell, User } from 'lucide-react-native';
 import LoginScreen from './src/screens/Auth/LoginScreen';
 import NotificationsScreen from './src/screens/Dashboard/NotificationsScreen';
 import ProfileScreen from './src/screens/Dashboard/ProfileScreen';
+import DraftsScreen from './src/screens/Offline/DraftsScreen';
+import FormFillScreen from './src/screens/Forms/FormFillScreen';
+import KYCUploadScreen from './src/screens/KYC/KYCUploadScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -33,16 +36,16 @@ function MainTabs() {
           return <Home size={size} color={color} />;
         },
         tabBarStyle: {
-          backgroundColor: '#111827',
+          backgroundColor: '#0f172a',
           borderTopWidth: 1,
-          borderTopColor: '#1E293B',
+          borderTopColor: '#1e293b',
           height: 60,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: '#7C3AED',
-        tabBarInactiveTintColor: '#64748B',
-        headerStyle: { backgroundColor: '#111827' },
-        headerTintColor: '#F8FAFC',
+        tabBarActiveTintColor: '#8b5cf6',
+        tabBarInactiveTintColor: '#64748b',
+        headerStyle: { backgroundColor: '#0f172a' },
+        headerTintColor: '#f8fafc',
         headerTitleStyle: { fontWeight: '700' },
       })}
     >
@@ -57,11 +60,11 @@ const customTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#090E1A',
-    card: '#111827',
-    text: '#F8FAFC',
-    border: '#2D3748',
-    primary: '#7C3AED',
+    background: '#020617', // hsl(222 47% 4%)
+    card: '#0f172a',       // hsl(222 47% 10%)
+    text: '#f8fafc',
+    border: '#1e293b',
+    primary: '#8b5cf6',    // hsl(263 70% 58%)
   },
 };
 

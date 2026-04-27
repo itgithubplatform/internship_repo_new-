@@ -56,30 +56,45 @@ export default function LoginPage() {
   const handleMfaVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // MFA verification logic would go here
-    // For demo, we'll just redirect
-    router.push('/admin');
-    setLoading(false);
+    setError('');
+
+    try {
+      await auth.verifyMfa(email, mfaCode);
+      
+      const user = auth.getUser();
+      if (user?.role === 'SUPER_ADMIN') router.push('/super-admin');
+      else if (user?.role === 'ADMIN') router.push('/admin');
+      else if (user?.role === 'MANAGER') router.push('/manager');
+      else router.push('/engineer');
+
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Invalid MFA code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Decorations */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md z-10"
       >
-        {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 rounded-2xl shadow-xl shadow-blue-500/20 mb-4 animate-float">
-            <ShieldCheck size={40} className="text-white" />
+          <div className="relative w-20 h-20 overflow-hidden rounded-3xl border border-white/10 shadow-2xl shadow-primary/20 mb-6 group">
+            <img 
+              src="/logo.png" 
+              alt="VeroFlow Logo" 
+              className="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-700" 
+            />
           </div>
-          <h1 className="text-3xl font-display font-bold tracking-tight">Antigravity<span className="text-blue-500">.</span></h1>
-          <p className="text-slate-400 mt-2 font-medium">Enterprise SaaS Infrastructure</p>
+          <h1 className="text-4xl font-display font-black tracking-tighter text-white">VeroFlow</h1>
+          <p className="text-slate-500 mt-2 font-black uppercase tracking-[0.2em] text-[10px]">Enterprise Platform</p>
         </div>
 
         <div className="glass-card p-8 md:p-10 shadow-2xl relative overflow-hidden">
@@ -126,7 +141,7 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center ml-1">
                       <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Password</label>
-                      <Link href="/forgot-password" size="sm" className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors">
+                      <Link href="/forgot-password" size="sm" className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">
                         Forgot Password?
                       </Link>
                     </div>
@@ -146,7 +161,7 @@ export default function LoginPage() {
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="btn-primary w-full h-14 text-lg justify-center mt-4 shadow-blue-500/20"
+                    className="btn-primary w-full h-14 text-lg justify-center mt-4 shadow-primary/20"
                   >
                     {loading ? <Loader2 className="animate-spin" /> : (
                       <>Sign In <ArrowRight size={20} className="ml-1" /></>
@@ -157,7 +172,7 @@ export default function LoginPage() {
                 <div className="mt-8 pt-8 border-t border-white/5 text-center">
                   <p className="text-slate-400 text-sm">
                     New tenant? {' '}
-                    <Link href="/register" className="text-blue-500 font-bold hover:text-blue-400 transition-colors">
+                    <Link href="/register" className="text-primary font-bold hover:text-primary/80 transition-colors">
                       Create an account
                     </Link>
                   </p>
@@ -179,6 +194,16 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleMfaVerify} className="space-y-6">
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-sm flex items-center gap-3"
+                    >
+                      <AlertCircle size={18} />
+                      {error}
+                    </motion.div>
+                  )}
                   <div className="flex justify-center gap-3">
                     <input 
                       type="text"

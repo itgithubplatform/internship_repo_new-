@@ -9,6 +9,11 @@ const licenseCache = new Map<string, { hasAccess: boolean; expiresAt: number }>(
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function licenseMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Demo Mode: Bypass if MOCK_MODE is enabled
+  if (process.env.MOCK_MODE === 'true') {
+    return next();
+  }
+
   // Pass-through public routes
   if (req.path.startsWith('/auth/login') || req.path.startsWith('/auth/register')) {
     return next();

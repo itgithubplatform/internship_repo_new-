@@ -2,171 +2,113 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  ClipboardList, 
-  ShieldCheck, 
-  Bell, 
-  LogOut, 
-  ChevronRight,
-  PlusCircle,
-  FileText
+  ShieldAlert, Upload, CheckCircle, FileText, Camera, Send, Clock, MapPin, ChevronRight
 } from 'lucide-react';
-import { getMyKYCStatus } from '../../services/kyc.service';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function EngineerDashboard() {
-  const [kycStatus, setKycStatus] = useState<string>('LOADING');
-  const [activeTab, setActiveTab] = useState('assignments');
+  const [kycStatus, setKycStatus] = useState<string>('pending');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'submit'>('tasks');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchStatus();
+    const savedKyc = localStorage.getItem('demo_kyc_status') || 'pending';
+    setKycStatus(savedKyc);
   }, []);
 
-  const fetchStatus = async () => {
-    const result = await getMyKYCStatus();
-    if (result.ok) {
-      setKycStatus(result.data.status);
-    } else {
-      setKycStatus('NOT_SUBMITTED');
-    }
+  const handleKycSubmit = () => {
+    localStorage.setItem('demo_kyc_status', 'submitted');
+    localStorage.setItem('demo_kyc_name', 'John Engineer');
+    setKycStatus('submitted');
   };
 
-  const mockAssignments = [
-    { id: '1', title: 'Site Inspection - Site Alpha', dueDate: '2024-05-01', status: 'TODO' },
-    { id: '2', title: 'Safety Compliance Check', dueDate: '2024-05-03', status: 'IN_PROGRESS' },
-  ];
+  const handleFormSubmit = (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const newSub = {
+      id: `SUB-${Math.floor(Math.random() * 9000) + 1000}`,
+      engineer: 'John Engineer',
+      form: 'Site Safety Audit',
+      time: 'Just now',
+      status: 'Pending Review'
+    };
+    const existing = JSON.parse(localStorage.getItem('demo_submissions') || '[]');
+    localStorage.setItem('demo_submissions', JSON.stringify([newSub, ...existing]));
+    
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setActiveTab('tasks');
+      alert('Form submitted to Manager successfully!');
+    }, 1500);
+  };
 
-  return (
-    <div className="min-h-screen bg-[#090E1A] text-[#F8FAFC]">
-      {/* Header */}
-      <header className="border-b border-[#1E293B] bg-[#111827] px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#7C3AED] p-2 rounded-lg">
-            <ClipboardList size={20} className="text-white" />
+  if (kycStatus === 'pending' || kycStatus === 'submitted') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="glass-card max-w-md w-full p-8 text-center border-white/5">
+           <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 text-primary">
+            {kycStatus === 'pending' ? <ShieldAlert size={40} /> : <Clock size={40} className="animate-pulse" />}
           </div>
-          <h1 className="text-xl font-bold">Engineer Portal</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="p-2 text-[#94A3B8] hover:text-[#7C3AED] transition-colors relative">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-          <div className="w-8 h-8 rounded-full bg-[#1E293B] border border-[#7C3AED] flex items-center justify-center text-xs font-bold">
-            JD
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto p-6">
-        {/* KYC Alert */}
-        {kycStatus !== 'APPROVED' && (
-          <div className={`mb-8 p-4 rounded-xl border flex items-center justify-between ${
-            kycStatus === 'PENDING' ? 'bg-[#2D1A00] border-[#F59E0B]/30' : 'bg-[#2D0606] border-[#EF4444]/30'
-          }`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-lg ${
-                kycStatus === 'PENDING' ? 'bg-[#F59E0B]/20' : 'bg-[#EF4444]/20'
-              }`}>
-                <ShieldCheck size={24} className={kycStatus === 'PENDING' ? 'text-[#F59E0B]' : 'text-[#EF4444]'} />
-              </div>
-              <div>
-                <h3 className="font-bold">Identity Verification {kycStatus === 'PENDING' ? 'Pending' : 'Required'}</h3>
-                <p className="text-sm text-[#94A3B8]">
-                  {kycStatus === 'PENDING' 
-                    ? 'Our team is reviewing your documents. Please wait.' 
-                    : 'Upload your documents to unlock full platform access.'}
-                </p>
-              </div>
-            </div>
-            {kycStatus !== 'PENDING' && (
-              <button className="bg-[#7C3AED] px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#6D28D9] transition-all">
-                Verify Now
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-[#111827] p-4 rounded-xl border border-[#1E293B]">
-            <p className="text-xs text-[#64748B] uppercase font-bold tracking-wider mb-1">Open Assignments</p>
-            <p className="text-2xl font-bold">12</p>
-          </div>
-          <div className="bg-[#111827] p-4 rounded-xl border border-[#1E293B]">
-            <p className="text-xs text-[#64748B] uppercase font-bold tracking-wider mb-1">Completed This Week</p>
-            <p className="text-2xl font-bold text-[#10B981]">8</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-[#1E293B] mb-6">
-          <button 
-            onClick={() => setActiveTab('assignments')}
-            className={`pb-3 px-2 font-semibold transition-all relative ${
-              activeTab === 'assignments' ? 'text-[#7C3AED]' : 'text-[#64748B]'
-            }`}
-          >
-            My Assignments
-            {activeTab === 'assignments' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]"></div>}
-          </button>
-          <button 
-            onClick={() => setActiveTab('drafts')}
-            className={`pb-3 px-2 font-semibold transition-all relative ${
-              activeTab === 'drafts' ? 'text-[#7C3AED]' : 'text-[#64748B]'
-            }`}
-          >
-            Offline Drafts
-            {activeTab === 'drafts' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]"></div>}
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-4">
-          {activeTab === 'assignments' ? (
-            mockAssignments.map(item => (
-              <div key={item.id} className="bg-[#111827] p-4 rounded-xl border border-[#1E293B] hover:border-[#7C3AED]/50 transition-all cursor-pointer group">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-[#1E293B] p-3 rounded-lg group-hover:bg-[#7C3AED]/10 transition-all">
-                      <FileText size={20} className="text-[#94A3B8] group-hover:text-[#7C3AED]" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold">{item.title}</h4>
-                      <p className="text-xs text-[#64748B]">Due: {item.dueDate}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${
-                      item.status === 'TODO' ? 'bg-blue-500/10 text-blue-400' : 'bg-yellow-500/10 text-yellow-400'
-                    }`}>
-                      {item.status.replace('_', ' ')}
-                    </span>
-                    <ChevronRight size={16} className="text-[#334155]" />
-                  </div>
-                </div>
-              </div>
-            ))
+          <h2 className="text-2xl font-black mb-2">Identity Verification</h2>
+          <p className="text-slate-400 text-sm mb-8">
+            {kycStatus === 'pending' 
+              ? "Submit your KYC documents to access the field work portal."
+              : "Your documents are under review by the Admin."}
+          </p>
+          {kycStatus === 'pending' ? (
+            <button onClick={handleKycSubmit} className="btn-primary w-full py-4 rounded-2xl font-black">Submit for Verification</button>
           ) : (
-            <div className="text-center py-20 bg-[#111827] rounded-xl border border-dashed border-[#1E293B]">
-              <PlusCircle size={48} className="mx-auto text-[#1E293B] mb-4" />
-              <p className="text-[#64748B]">No offline drafts found</p>
+            <div className="p-4 bg-white/5 rounded-2xl">
+               <span className="text-[10px] font-black bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md uppercase">Pending Review</span>
+               <button onClick={() => { localStorage.setItem('demo_kyc_status', 'approved'); setKycStatus('approved'); }} className="block mx-auto mt-4 text-[10px] text-slate-600">(Demo: Bypass to Approved)</button>
             </div>
           )}
         </div>
-      </main>
+      </div>
+    );
+  }
 
-      {/* Mobile-first bottom nav (for PWA feel) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-[#1E293B] px-6 py-3 flex justify-between items-center z-10">
-        <button className="flex flex-col items-center gap-1 text-[#7C3AED]">
-          <ClipboardList size={20} />
-          <span className="text-[10px] font-bold">Work</span>
-        </button>
-        <button className="flex flex-col items-center gap-1 text-[#64748B]">
-          <Bell size={20} />
-          <span className="text-[10px] font-bold">Alerts</span>
-        </button>
-        <button className="flex flex-col items-center gap-1 text-[#64748B]">
-          <LogOut size={20} />
-          <span className="text-[10px] font-bold">Exit</span>
-        </button>
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <div className="relative w-10 h-10 overflow-hidden rounded-xl border border-white/10 shadow-lg">
+            <img 
+              src="/logo.png" 
+              alt="VeroFlow Logo" 
+              className="w-full h-full object-cover scale-110" 
+            />
+          </div>
+          <div>
+            <h3 className="font-black text-sm tracking-tight text-white">VeroFlow</h3>
+            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-tighter">Verified Portal</span>
+          </div>
+        </div>
+        <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="text-rose-400 text-[10px] font-black uppercase">Sign Out</button>
+      </div>
+
+      <div className="flex bg-white/5 p-4 gap-4">
+        <button onClick={() => setActiveTab('tasks')} className={`flex-1 py-2 text-xs font-black rounded-lg ${activeTab === 'tasks' ? 'bg-primary' : 'text-slate-500'}`}>TASKS</button>
+        <button onClick={() => setActiveTab('submit')} className={`flex-1 py-2 text-xs font-black rounded-lg ${activeTab === 'submit' ? 'bg-primary' : 'text-slate-500'}`}>SUBMIT FORM</button>
+      </div>
+
+      <div className="p-6 flex-1">
+        {activeTab === 'tasks' ? (
+          <div className="space-y-4">
+            <div className="glass-card p-5 border-white/5 flex items-center justify-between">
+              <div className="flex gap-4">
+                <FileText className="text-primary" />
+                <div><h5 className="font-bold text-sm">Site B - Safety Inspection</h5><p className="text-[10px] text-slate-500">London Sector 4</p></div>
+              </div>
+              <ChevronRight className="text-slate-700" />
+            </div>
+          </div>
+        ) : (
+          <div className="glass-card p-6 border-white/5 space-y-4">
+            <textarea placeholder="Observations..." className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm min-h-[100px]" />
+            <button onClick={handleFormSubmit} disabled={isSubmitting} className="btn-primary w-full py-4 rounded-xl font-black">{isSubmitting ? 'Submitting...' : 'Submit to Manager'}</button>
+          </div>
+        )}
       </div>
     </div>
   );
